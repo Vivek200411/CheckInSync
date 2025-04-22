@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Check In Sync</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            color: white;
+            margin: 0;
+            padding: 50px 0;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.3);
+            width: 360px;
+            margin: auto;
+            color: black;
+            margin-bottom: 30px;
+        }
+
+        .user-logo {
+            width: 80px;
+            margin-bottom: 10px;
+        }
+
+        input,
+        select {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #6a11cb;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #4a08a6;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        ul li {
+            background: #eee;
+            margin: 5px;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .delete-btn {
+            background: red;
+            padding: 5px;
+            border: none;
+            cursor: pointer;
+            color: white;
+            border-radius: 3px;
+            margin-left: 10px;
+        }
+
+        #defaulter-list {
+            display: none;
+        }
+
+        #defaulter-list li {
+            color: red;
+            font-weight: bold;
+        }
+
+        .record-wrapper {
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 10px;
+            background-color: #f7f7f7;
+        }
+
+        .record-header {
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 5px;
+        }
+
+        .record-details {
+            display: none;
+            padding: 10px;
+        }
+
+        .record-details li {
+            background: #eee;
+            margin: 5px 0;
+            padding: 8px;
+            border-radius: 5px;
+        }
+
+        .date-label {
+            font-size: 14px;
+            color: white;
+            margin-bottom: 5px;
+            text-align: left;
+            padding-left: 10px;
+        }
+
+        /* Welcome screen styling */
+        #welcome-screen {
+            display: block;
+            text-align: center;
+            padding-top: 100px;
+        }
+
+        #welcome-screen h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        #get-started-btn {
+            font-size: 18px;
+            padding: 12px 25px;
+            border-radius: 30px;
+            background-color: white;
+            color: #6a11cb;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        #get-started-btn:hover {
+            transform: scale(1.05);
+        }
+
+        #auth-container {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Welcome Screen -->
+    <div id="welcome-screen">
+        <h1>Welcome to Check In Sync</h1>
+        <button id="get-started-btn">Get Started →</button>
+    </div>
+
+    <!-- Login/Register Container -->
+    <div class="container" id="auth-container">
+        <img src="https://cdn-icons-png.flaticon.com/512/747/747376.png" alt="User Logo" class="user-logo">
+        <h2>Teacher Login</h2>
+        <input type="text" id="teacher-username" placeholder="Enter Username">
+        <input type="password" id="teacher-password" placeholder="Enter Password">
+        <button onclick="loginTeacher()">Login</button>
+        <button onclick="registerTeacher()">Register</button>
+    </div>
+
+    <!-- Dashboard Container -->
+    <div class="container" id="dashboard-container" style="display: none;">
+        <h2>Teacher Dashboard</h2>
+        <button onclick="logoutTeacher()">Logout</button>
+
+        <h3>Add Student</h3>
+        <input type="text" id="student-name" placeholder="Enter Student Name">
+        <input type="text" id="student-roll" placeholder="Enter Roll No">
+        <button onclick="addStudent()">Add Student</button>
+
+        <h3>Mark Attendance</h3>
+        <select id="student-list">
+            <option value="">Select Student</option>
+        </select>
+        <label for="attendance-date" class="date-label">Select Date</label>
+        <input type="date" id="attendance-date">
+        <button onclick="markAttendance('Present')">Present</button>
+        <button onclick="markAttendance('Absent')">Absent</button>
+
+        <h3>Attendance Records</h3>
+        <div id="attendance-records"></div>
+
+        <h3>Attendance Percentage</h3>
+        <ul id="percentage-list"></ul>
+
+        <h3>Defaulter List (Below 75%)</h3>
+        <button onclick="toggleDefaulterList()">View Defaulter List</button>
+        <ul id="defaulter-list"></ul>
+
+        <button onclick="clearAllData()">Delete All Data</button>
+    </div>
+
+    <script>
+        let currentTeacher = null;
+
+        function getTeacherKey() {
+            return students_${ currentTeacher };
+        }
+
+        function registerTeacher() {
+            let username = document.getElementById("teacher-username").value;
+            let password = document.getElementById("teacher-password").value;
+            if (!username || !password) {
+                alert("Please enter a username and password");
+                return;
+            }
+            localStorage.setItem(teacher_${ username }, JSON.stringify({ username, password }));
+            alert("Registration successful! Please log in.");
+        }
+
+        function loginTeacher() {
+            let username = document.getElementById("teacher-username").value;
+            let password = document.getElementById("teacher-password").value;
+            let stored = localStorage.getItem(teacher_${ username });
+            let teacher = stored ? JSON.parse(stored) : null;
+
+            if (teacher && teacher.password === password) {
+                currentTeacher = username;
+                document.getElementById("auth-container").style.display = "none";
+                document.getElementById("dashboard-container").style.display = "block";
+                loadStudents();
+                loadAttendanceRecords();
+                showPercentages();
+            } else {
+                alert("Invalid credentials!");
+            }
+        }
+
+        function logoutTeacher() {
+            currentTeacher = null;
+            document.getElementById("auth-container").style.display = "block";
+            document.getElementById("dashboard-container").style.display = "none";
+        }
+
+        function addStudent() {
+            let name = document.getElementById("student-name").value;
+            let roll = document.getElementById("student-roll").value;
+            if (!name || !roll) {
+                alert("Please enter both Name and Roll No!");
+                return;
+            }
+            let students = JSON.parse(localStorage.getItem(getTeacherKey())) || {};
+            students[roll] = { name: name, attendance: {} };
+            localStorage.setItem(getTeacherKey(), JSON.stringify(students));
+            loadStudents();
+            showPercentages();
+        }
+
+        function loadStudents() {
+            let students = JSON.parse(localStorage.getItem(getTeacherKey())) || {};
+            let studentList = document.getElementById("student-list");
+            studentList.innerHTML = '<option value="">Select Student</option>';
+            Object.keys(students).forEach(roll => {
+                let option = document.createElement("option");
+                option.value = roll;
+                option.innerText = ${ students[roll].name } (${ roll });
+            studentList.appendChild(option);
+        });
+    }
+
+        function markAttendance(status) {
+            let roll = document.getElementById("student-list").value;
+            let selectedDate = document.getElementById("attendance-date").value;
+
+            if (!roll || !selectedDate) {
+                alert("Please select a student and a date!");
+                return;
+            }
+
+            let students = JSON.parse(localStorage.getItem(getTeacherKey())) || {};
+            students[roll].attendance[selectedDate] = status;
+            localStorage.setItem(getTeacherKey(), JSON.stringify(students));
+            loadAttendanceRecords();
+            showPercentages();
+        }
+
+        function loadAttendanceRecords() {
+            let students = JSON.parse(localStorage.getItem(getTeacherKey())) || {};
+            let container = document.getElementById("attendance-records");
+            container.innerHTML = "";
+
+            Object.keys(students).forEach(roll => {
+                let student = students[roll];
+                let wrapper = document.createElement("div");
+                wrapper.className = "record-wrapper";
+
+                let header = document.createElement("div");
+                header.className = "record-header";
+                header.innerText = ${ student.name } (${ roll }) - Click to view records;
+
+            let details = document.createElement("ul");
+            details.className = "record-details";
+
+            Object.keys(student.attendance).forEach(date => {
+                let li = document.createElement("li");
+                li.innerText = ${ date } - ${ student.attendance[date] };
+                let deleteBtn = document.createElement("button");
+                deleteBtn.innerText = "Delete";
+                deleteBtn.classList.add("delete-btn");
+                deleteBtn.onclick = function () {
+                    deleteAttendance(roll, date);
+                };
+                li.appendChild(deleteBtn);
+                details.appendChild(li);
+            });
+
+            header.onclick = () => {
+                details.style.display = details.style.display === "none" ? "block" : "none";
+            };
+
+            wrapper.appendChild(header);
+            wrapper.appendChild(details);
+            container.appendChild(wrapper);
+        });
+    }
+
+        function deleteAttendance(roll, date) {
+            let students = JSON.parse(localStorage.getItem(getTeacherKey())) || {};
+            delete students[roll].attendance[date];
+            localStorage.setItem(getTeacherKey(), JSON.stringify(students));
+            loadAttendanceRecords();
+            showPercentages();
+        }
+
+        function showPercentages() {
+            let students = JSON.parse(localStorage.getItem(getTeacherKey())) || {};
+            let percentageList = document.getElementById("percentage-list");
+            let defaulterList = document.getElementById("defaulter-list");
+            percentageList.innerHTML = "";
+            defaulterList.innerHTML = "";
+
+            Object.keys(students).forEach(roll => {
+                let attendance = students[roll].attendance;
+                let totalDays = Object.keys(attendance).length;
+                let presentDays = Object.values(attendance).filter(v => v === "Present").length;
+                let percentage = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(1) : "0.0";
+
+                let li = document.createElement("li");
+                li.innerText = ${ students[roll].name } (${ roll }) - ${ percentage }%;
+            percentageList.appendChild(li);
+
+            if (parseFloat(percentage) < 75) {
+                let dli = document.createElement("li");
+                dli.innerText = ${ students[roll].name } (${ roll }) - ${ percentage }%;
+                defaulterList.appendChild(dli);
+            }
+        });
+    }
+
+        function toggleDefaulterList() {
+            const list = document.getElementById("defaulter-list");
+            list.style.display = list.style.display === "none" ? "block" : "none";
+        }
+
+        function clearAllData() {
+            localStorage.removeItem(getTeacherKey());
+            loadStudents();
+            loadAttendanceRecords();
+            showPercentages();
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const dateInput = document.getElementById("attendance-date");
+            dateInput.style.color = "#999";
+            dateInput.addEventListener("change", () => {
+                dateInput.style.color = "#000";
+            });
+
+            // Handle Get Started click
+            const getStartedBtn = document.getElementById("get-started-btn");
+            getStartedBtn.addEventListener("click", () => {
+                document.getElementById("welcome-screen").style.display = "none";
+                document.getElementById("auth-container").style.display = "block";
+            });
+        });
+    </script>
+</body>
+
+</html>
